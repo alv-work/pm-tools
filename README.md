@@ -1,14 +1,17 @@
-# read-md-plugin
+# pm-tools
 
-A Claude Code plugin that renders a generated markdown file as HTML in your browser — Medium-style serif reading layout, auto-built sidebar navigation, and a light/dark toggle.
+A Claude Code plugin marketplace of tools, plugins, and skills for PMs.
 
-Built for the markdown that the Superpowers plugin writes under `docs/superpowers/`, but works on any `.md` file.
+## Plugins
+
+### read-md-plugin
+Renders a generated markdown file as HTML in your browser — Medium-style serif reading layout, auto-built sidebar navigation, and a light/dark toggle. Built for the markdown that the Superpowers plugin writes under `docs/superpowers/`, but works on any `.md` file.
 
 ## Install
 
 ```
-/plugin marketplace add alv-work/read-md-plugin
-/plugin install read-md-plugin@avaibhav-tools
+/plugin marketplace add alv-work/pm-tools
+/plugin install read-md-plugin@pm-tools
 ```
 
 Then reload plugins if prompted.
