@@ -7,6 +7,9 @@ A Claude Code plugin marketplace of tools, plugins, and skills for PMs.
 ### read-md-plugin
 Renders a generated markdown file as HTML in your browser — Medium-style serif reading layout, auto-built sidebar navigation, and a light/dark toggle. Built for the markdown that the Superpowers plugin writes under `docs/superpowers/`, but works on any `.md` file.
 
+### babysit-doc
+Watches a Confluence page's comment threads and drafts replies for you to approve before anything posts. Pair with `/loop` for continuous watching: `/loop 10m /babysit-doc <page-url>`. Needs `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`.
+
 ## Install
 
 ```
