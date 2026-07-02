@@ -133,8 +133,8 @@ doc access — no partial output.
 
 - Auth failure → single clear message, exit non-zero.
 - Doc ref unresolvable (bad URL / no access) → clear message naming the ref.
-- API rate limit / transient 5xx → bounded retry with backoff; if still failing,
-  report and exit.
+- API rate limit / transient 5xx → v1 raises immediately (bounded retry with
+  backoff is deferred; see Explicitly deferred above).
 - Per-thread drafting failure → skip that thread with a noted error; the rest of
   the pass continues (one bad thread never aborts the run).
 - `post_reply` failure after approval → report which thread failed; that thread is
