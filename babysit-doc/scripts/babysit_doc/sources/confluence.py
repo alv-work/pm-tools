@@ -71,5 +71,9 @@ class ConfluenceSource(DocSource):
                 threads.append(self._thread_from(kind, top))
         return threads
 
-    def post_reply(self, thread, text):
-        raise NotImplementedError  # Task 5
+    def post_reply(self, thread, text, page_id):
+        self._c.post(f"/api/v2/{thread.type}-comments", {
+            "pageId": page_id,
+            "parentCommentId": thread.id,
+            "body": {"representation": "storage", "value": text},
+        })

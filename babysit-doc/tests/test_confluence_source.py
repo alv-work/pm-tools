@@ -67,3 +67,19 @@ def test_resolve_bare_id_produces_absolute_url():
     src = ConfluenceSource(FakeClient(responses))
     page = src.resolve("5")
     assert page.url.startswith("https://acme.atlassian.net/wiki")
+
+
+def test_post_reply_posts_to_correct_endpoint():
+    calls = {}
+    class PostClient:
+        def get(self, path, params=None): raise AssertionError
+        def post(self, path, body):
+            calls["path"] = path; calls["body"] = body
+            return {"id": "999"}
+    from babysit_doc.sources.base import Thread
+    t = Thread("100", "footer", "u1", "t", "t", "c", "/x/100", None)
+    ConfluenceSource(PostClient()).post_reply(t, "Sounds good", "5")
+    assert calls["path"] == "/api/v2/footer-comments"
+    assert calls["body"]["pageId"] == "5"
+    assert calls["body"]["parentCommentId"] == "100"
+    assert calls["body"]["body"] == {"representation": "storage", "value": "Sounds good"}
