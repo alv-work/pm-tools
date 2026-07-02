@@ -1,0 +1,14 @@
+{
+  "name": "avaibhav-tools",
+  "owner": {
+    "name": "Alabhya Vaibhav"
+  },
+  "plugins": [
+    {
+      "name": "read-md-plugin",
+      "source": "./read-md-plugin",
+      "description": "Render a generated markdown file as HTML in the browser with a Medium-style reading layout, sidebar navigation, and light/dark themes.",
+      "version": "1.0.0"
+    }
+  ]
+}
