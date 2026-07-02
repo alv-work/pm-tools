@@ -23,13 +23,21 @@ class ConfluenceSource(DocSource):
     def __init__(self, client):
         self._c = client
 
+    def _abs(self, webui):
+        if not webui:
+            return ""
+        base = self._c.base_url
+        # avoid a doubled /wiki when base already ends in /wiki and webui starts with it
+        if base.endswith("/wiki") and webui.startswith("/wiki"):
+            webui = webui[len("/wiki"):]
+        return base + webui
+
     def resolve(self, ref):
         pid = extract_page_id(ref)
         data = self._c.get(f"/api/v2/pages/{pid}", {"body-format": "storage"})
         body = (data.get("body", {}).get("storage", {}) or {}).get("value", "")
-        base = re.sub(r"/wiki.*$", "/wiki", ref) if "/wiki" in ref else ""
         webui = (data.get("_links", {}) or {}).get("webui", "")
-        url = (base + webui) if webui else ref
+        url = self._abs(webui) or ref
         return Page(id=pid, title=data.get("title", ""), url=url, text=strip_tags(body))
 
     def _paged(self, path):
@@ -53,7 +61,7 @@ class ConfluenceSource(DocSource):
             id=tid, type=kind, author=str(top["version"].get("authorId", "")),
             created_at=top["version"]["createdAt"], updated_at=updated,
             comment_text="\n\n".join(p for p in parts if p),
-            permalink=(top.get("_links", {}) or {}).get("webui", ""), anchor=anchor,
+            permalink=self._abs((top.get("_links", {}) or {}).get("webui", "")), anchor=anchor,
         )
 
     def list_threads(self, page):

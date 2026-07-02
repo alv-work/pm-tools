@@ -18,6 +18,7 @@ class ApiError(ClientError):
 class ConfluenceClient:
     def __init__(self, cfg, opener=urllib.request.urlopen):
         self._base = cfg.base_url
+        self.base_url = cfg.base_url
         self._opener = opener
         token = base64.b64encode(f"{cfg.email}:{cfg.token}".encode()).decode()
         self._auth = f"Basic {token}"

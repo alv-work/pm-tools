@@ -23,6 +23,7 @@ def test_strip_tags_produces_plain_text():
 class FakeClient:
     def __init__(self, responses):
         self.responses = responses  # dict: path -> dict
+        self.base_url = "https://acme.atlassian.net/wiki"
     def get(self, path, params=None):
         return self.responses[path]
     def post(self, path, body):
@@ -49,5 +50,20 @@ def test_list_threads_builds_threads_with_reply_chain():
     assert len(threads) == 1
     t = threads[0]
     assert t.id == "100" and t.type == "footer"
-    assert "Can we cut scope?" in t.comment_text and "Agreed" in t.comment_text
+    assert t.comment_text == "Can we cut scope?\n\nAgreed"
     assert t.updated_at == "2026-07-01T12:00:00Z"   # latest reply wins
+    assert t.permalink.startswith("https://acme.atlassian.net/wiki")
+
+
+def test_resolve_bare_id_produces_absolute_url():
+    page_id = "5"
+    responses = {
+        f"/api/v2/pages/{page_id}": {
+            "title": "My Spec",
+            "body": {"storage": {"value": "<p>Some content</p>"}},
+            "_links": {"webui": "/spaces/ENG/pages/5/Spec"}
+        }
+    }
+    src = ConfluenceSource(FakeClient(responses))
+    page = src.resolve("5")
+    assert page.url.startswith("https://acme.atlassian.net/wiki")
