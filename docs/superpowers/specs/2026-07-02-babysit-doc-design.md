@@ -72,7 +72,9 @@ For each queued thread: read comment + `get_context`, then decide and produce:
 ### Review surface (Claude-mediated, in-session)
 The script does not block on interactive input. Instead the two-mode split below
 lets **Claude** (driven by the command file) mediate approval in conversation:
-1. `scan` mode emits the queued threads + drafts as **structured JSON** to stdout.
+1. `scan` mode emits the queued threads + the page's plain text as **structured
+   JSON** to stdout. Drafting itself happens in **Claude** (the command file
+   instructs it), so the Python stays zero-dependency and needs no LLM key/SDK.
 2. The command instructs Claude to present each: doc/thread permalink, author, the
    comment, a context snippet, the drafted reply, and the confidence flag — then
    ask the human to **approve**, **edit**, or **skip** per item.
