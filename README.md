@@ -7,7 +7,7 @@ Built for the markdown that the Superpowers plugin writes under `docs/superpower
 ## Install
 
 ```
-/plugin marketplace add <your-github-username>/<this-repo>
+/plugin marketplace add alv-work/read-md-plugin
 /plugin install read-md-plugin@avaibhav-tools
 ```
 
