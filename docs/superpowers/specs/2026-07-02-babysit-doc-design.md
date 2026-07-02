@@ -32,6 +32,8 @@ draft when it is unsure — without ever posting under their name unreviewed.
 - Auto-post-when-confident — a config flag gating the existing `post_reply` step.
 - Inline *suggestion* (tracked-edit accept/reject) handling — a new thread type.
 - Slack / email delivery of nudges — an alternate review surface.
+- Bounded retry/backoff on rate-limit/5xx is not implemented in v1 (the client
+  raises immediately).
 
 ## Architecture
 
@@ -80,8 +82,9 @@ lets **Claude** (driven by the command file) mediate approval in conversation:
    ask the human to **approve**, **edit**, or **skip** per item.
 3. For each approved/edited item, Claude calls the script in `post` mode with the
    thread id and final text.
-Draft-only is enforced structurally: `scan` never posts; `post` only runs on an
-item the human approved.
+Draft-only is enforced structurally on `scan` (it never posts); the `post`-side
+approval is Claude-mediated (the human approves in-session), not structurally
+enforced.
 
 ### Poster (`post` mode)
 `DocSource.post_reply(thread, text)`, then record the thread as seen with its

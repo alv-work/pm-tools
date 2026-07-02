@@ -36,6 +36,9 @@ def main(argv=None, source_factory=None, state_factory=None):
 
     try:
         if cmd == "scan":
+            if not rest:
+                print("usage: babysit_doc scan <ref>", file=sys.stderr)
+                return 2
             page = source.resolve(rest[0])
             state = make_state(page.id)
             queued = queue_new_or_updated(source.list_threads(page), state.seen)
@@ -47,6 +50,9 @@ def main(argv=None, source_factory=None, state_factory=None):
             return 0
 
         if cmd == "post":
+            if len(rest) < 4:
+                print("usage: babysit_doc post <ref> <thread_id> <type> <text>", file=sys.stderr)
+                return 2
             ref, thread_id, ttype, text = rest[0], rest[1], rest[2], rest[3]
             page = source.resolve(ref)
             state = make_state(page.id)
@@ -64,6 +70,9 @@ def main(argv=None, source_factory=None, state_factory=None):
         return 2
     except ClientError as e:
         print(f"babysit-doc: {e}", file=sys.stderr)
+        return 1
+    except (KeyError, IndexError) as e:
+        print(f"babysit-doc: unexpected data from Confluence: {e}", file=sys.stderr)
         return 1
 
 

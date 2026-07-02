@@ -44,3 +44,17 @@ def test_post_calls_source_and_marks_seen(capsys, tmp_path):
     assert rc == 0
     assert fake.posted == [("100", "Sounds good", "5")]
     assert State("5", root=tmp_path).seen.get("100") is not None
+
+
+def test_post_with_too_few_args_returns_usage(capsys):
+    rc = main(["post", "5", "100"], source_factory=lambda cfg: FakeSource())
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "usage:" in err and "post" in err
+
+
+def test_scan_with_no_args_returns_usage(capsys):
+    rc = main(["scan"], source_factory=lambda cfg: FakeSource())
+    assert rc == 2
+    err = capsys.readouterr().err
+    assert "usage:" in err and "scan" in err

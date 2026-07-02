@@ -24,7 +24,9 @@ class FakeClient:
     def __init__(self, responses):
         self.responses = responses  # dict: path -> dict
         self.base_url = "https://acme.atlassian.net/wiki"
+        self.calls = []  # capture (path, params) per call
     def get(self, path, params=None):
+        self.calls.append((path, params))
         return self.responses[path]
     def post(self, path, body):
         raise AssertionError("list should not POST")
@@ -83,3 +85,23 @@ def test_post_reply_posts_to_correct_endpoint():
     assert calls["body"]["pageId"] == "5"
     assert calls["body"]["parentCommentId"] == "100"
     assert calls["body"]["body"] == {"representation": "storage", "value": "Sounds good"}
+
+
+def test_list_threads_filters_inline_to_open_only():
+    page_id = "5"
+    responses = {
+        f"/api/v2/pages/{page_id}/footer-comments": {"results": [], "_links": {}},
+        f"/api/v2/pages/{page_id}/inline-comments": {"results": [], "_links": {}},
+    }
+    client = FakeClient(responses)
+    src = ConfluenceSource(client)
+    page = type("P", (), {"id": page_id})()
+    src.list_threads(page)
+
+    # assert inline call included resolution-status=open
+    inline_call = [c for c in client.calls if "inline-comments" in c[0]][0]
+    assert inline_call[1].get("resolution-status") == "open"
+
+    # assert footer call did NOT include resolution-status
+    footer_call = [c for c in client.calls if "footer-comments" in c[0]][0]
+    assert "resolution-status" not in (footer_call[1] or {})

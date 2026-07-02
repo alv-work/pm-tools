@@ -40,9 +40,12 @@ class ConfluenceSource(DocSource):
         url = self._abs(webui) or ref
         return Page(id=pid, title=data.get("title", ""), url=url, text=strip_tags(body))
 
-    def _paged(self, path):
+    def _paged(self, path, extra=None):
         # v1: single page of up to 100; pagination deferred (noted in plan).
-        data = self._c.get(path, {"body-format": "storage", "limit": 100})
+        params = {"body-format": "storage", "limit": 100}
+        if extra:
+            params.update(extra)
+        data = self._c.get(path, params)
         return data.get("results", [])
 
     def _thread_from(self, kind, top):
@@ -66,9 +69,10 @@ class ConfluenceSource(DocSource):
 
     def list_threads(self, page):
         threads = []
-        for kind in ("footer", "inline"):
-            for top in self._paged(f"/api/v2/pages/{page.id}/{kind}-comments"):
-                threads.append(self._thread_from(kind, top))
+        for top in self._paged(f"/api/v2/pages/{page.id}/footer-comments"):
+            threads.append(self._thread_from("footer", top))
+        for top in self._paged(f"/api/v2/pages/{page.id}/inline-comments", extra={"resolution-status": "open"}):
+            threads.append(self._thread_from("inline", top))
         return threads
 
     def post_reply(self, thread, text, page_id):
