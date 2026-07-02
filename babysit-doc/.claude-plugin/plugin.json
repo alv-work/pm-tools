@@ -1,0 +1,6 @@
+{
+  "name": "babysit-doc",
+  "description": "Watch a Confluence page's comment threads and surface Claude-drafted replies to approve before posting.",
+  "version": "0.1.0",
+  "author": { "name": "Alabhya Vaibhav" }
+}

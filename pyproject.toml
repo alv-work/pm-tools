@@ -1,0 +1,3 @@
+[tool.pytest.ini_options]
+testpaths = ["babysit-doc/tests"]
+pythonpath = ["babysit-doc/scripts"]
