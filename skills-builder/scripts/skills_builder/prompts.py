@@ -33,7 +33,10 @@ CONTRACT — every single reply MUST end with exactly one fenced ```json block:
 ```
 
 Rules:
-- Put your conversational message as normal prose BEFORE the json block.
+- Put your conversational message as normal prose BEFORE the json block. The PM sees ONLY
+  this prose (never the json), so it must be complete and self-contained. Do NOT promise inline
+  content — e.g. do not end with "Here's the structure:" and then put the structure only in the
+  json. Either state it in the message, or point to the live preview panel on the right.
 - `stage` MUST be exactly one of these five literal strings: idea, shape, draft, test, use.
   Never invent other stage names (not "requirements", "questions", etc.). If unsure, repeat the current stage.
 - `done` is how you advance: set `done: true` the moment the current step is complete, and the

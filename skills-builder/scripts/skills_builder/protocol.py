@@ -97,10 +97,14 @@ def _parse_widget(w) -> Optional[Widget]:
 
 
 def _strip_last_block(text: str) -> str:
-    """Return the prose before the final ```json block, trimmed."""
+    """Return the prose with the final ```json block removed.
+
+    Keeps text both before AND after the block, so a sign-off the model adds
+    after the JSON isn't silently dropped from the chat bubble.
+    """
     last = None
     for last in _FENCE_RE.finditer(text):
         pass
     if last is None:
         return text.strip()
-    return text[: last.start()].strip()
+    return (text[: last.start()] + "\n" + text[last.end():]).strip()

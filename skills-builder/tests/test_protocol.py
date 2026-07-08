@@ -89,6 +89,16 @@ def test_draft_review_carries_draft_content():
     assert t.draft == "---\nname: x\n---\nbody"
 
 
+def test_keeps_prose_after_the_json_block():
+    turn_text = (
+        "Here's my question.\n```json\n{\"stage\": \"shape\", \"done\": false}\n```\n"
+        "Let me know what you think!"
+    )
+    t = parse_turn(turn_text)
+    assert "Here's my question." in t.chat_text
+    assert "Let me know what you think!" in t.chat_text
+
+
 def test_uses_last_json_block_when_prose_has_earlier_fence():
     turn_text = (
         "Example config:\n```json\n{\"unrelated\": 1}\n```\n"
