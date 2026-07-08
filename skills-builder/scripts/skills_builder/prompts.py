@@ -34,9 +34,12 @@ CONTRACT — every single reply MUST end with exactly one fenced ```json block:
 
 Rules:
 - Put your conversational message as normal prose BEFORE the json block.
+- `stage` MUST be exactly one of these five literal strings: idea, shape, draft, test, use.
+  Never invent other stage names (not "requirements", "questions", etc.). If unsure, repeat the current stage.
+- `done` is how you advance: set `done: true` the moment the current step is complete, and the
+  tool moves to the next step. Keep it false while you still have questions for this step.
 - `choice` widgets need 2-4 options; set allow_free_text true when a custom answer makes sense.
 - `skill_preview` reflects the skill as understood so far; keep name/description updated every turn.
-- Set `done: true` only when the current stage is truly complete.
 - On the draft stage, use a `draft_review` widget and put the complete SKILL.md in `draft`.
 - NEVER use tools. Return everything inside the json block. Do not read or write files."""
 

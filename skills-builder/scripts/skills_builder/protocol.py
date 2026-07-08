@@ -29,7 +29,7 @@ class Widget:
 @dataclass
 class Turn:
     chat_text: str
-    stage: str
+    stage: Optional[str]    # one of STAGES, or None if the model emitted an unknown value
     widget: Optional[Widget]
     skill_preview: dict     # {"name", "description", "sections"}
     draft: Optional[str]    # full SKILL.md content, present on draft_review
@@ -54,9 +54,12 @@ def parse_turn(text: str) -> Turn:
     if not isinstance(data, dict):
         raise ProtocolError("turn JSON must be an object")
 
+    # `stage` is advisory: the server's flow machine is authoritative, so an
+    # unknown value (models sometimes invent stage names) must not throw away an
+    # otherwise-valid turn — it just means "no stage hint this turn".
     stage = data.get("stage")
     if stage not in STAGES:
-        raise ProtocolError(f"stage must be one of {STAGES}, got {stage!r}")
+        stage = None
 
     widget = _parse_widget(data.get("widget"))
     return Turn(

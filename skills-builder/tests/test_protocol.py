@@ -46,9 +46,17 @@ def test_malformed_json_raises():
         parse_turn("text\n```json\n{not valid,}\n```")
 
 
-def test_bad_stage_raises():
-    with pytest.raises(ProtocolError):
-        parse_turn('```json\n{"stage": "bogus"}\n```')
+def test_unknown_stage_becomes_none_not_fatal():
+    # models sometimes invent stage names; the turn must still parse
+    t = parse_turn('Some question\n```json\n{"stage": "requirements", "widget": {"type": "free_text", "question": "?"}}\n```')
+    assert t.stage is None
+    assert t.widget.type == "free_text"
+    assert t.chat_text == "Some question"
+
+
+def test_missing_stage_becomes_none():
+    t = parse_turn('```json\n{"widget": {"type": "free_text", "question": "?"}}\n```')
+    assert t.stage is None
 
 
 def test_bad_widget_type_raises():

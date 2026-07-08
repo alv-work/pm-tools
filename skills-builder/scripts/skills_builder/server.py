@@ -20,6 +20,13 @@ from .store import StoreError
 
 TOOL_VERSION = "0.1.0"
 
+# Appended to every user turn to counter model drift on --resume turns (where the
+# system prompt no longer applies). Invisible to the PM; not stored in the display transcript.
+_TURN_REMINDER = (
+    "\n\n(Reminder: end your reply with exactly one ```json block. `stage` must be "
+    "one of idea, shape, draft, test, use. Set `done: true` when this step is complete.)"
+)
+
 # Map engine failure kinds to HTTP status codes; the UI keys its error cards off `kind`.
 _ERROR_STATUS = {
     "timeout": 504,
@@ -75,7 +82,7 @@ class App:
         self._store.append_transcript(build_id, {"role": "user", "text": display})
 
         try:
-            result = self._engine.turn(prompt, session_id=meta.session_id)
+            result = self._engine.turn(prompt + _TURN_REMINDER, session_id=meta.session_id)
         except EngineError as e:
             return _ERROR_STATUS.get(e.kind, 500), {
                 "error": {"kind": e.kind, "message": str(e), "detail": e.detail}
@@ -83,9 +90,7 @@ class App:
 
         turn = result.turn
         meta.session_id = result.session_id or meta.session_id
-        # flow is authoritative: accept the model's proposed stage only if the move is legal
-        if turn.stage != meta.stage and flow.can_transition(meta.stage, turn.stage):
-            meta.stage = turn.stage
+        meta.stage = self._advance_stage(meta.stage, turn)
         name = (turn.skill_preview or {}).get("name")
         if name:
             meta.skill_name = name
@@ -186,6 +191,24 @@ class App:
                      "build": asdict(meta)}
 
     # ---- helpers --------------------------------------------------------
+
+    def _advance_stage(self, current, turn):
+        """Decide the next stage. flow is authoritative; the model only hints.
+
+        Progression is driven by the simple `done` signal (and a deterministic
+        idea->shape step), not by the model echoing an exact stage enum — which
+        it does unreliably.
+        """
+        if current == "idea":
+            return "shape"  # giving the initial idea completes the Idea step
+        if turn.stage and flow.can_transition(current, turn.stage):
+            return turn.stage
+        if turn.done and current != flow.ORDER[-1]:
+            try:
+                return flow.next_stage(current)
+            except flow.FlowError:
+                return current
+        return current
 
     def _turn_to_entry(self, turn, stage):
         widget = None

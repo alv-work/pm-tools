@@ -18,16 +18,16 @@ class FakeEngine:
         return r
 
 
-def _shape_turn(name="launch-announcements", draft=None):
+def _shape_turn(name="launch-announcements", draft=None, stage="shape", done=False):
     return Turn(
         chat_text="Who is the audience?",
-        stage="shape",
+        stage=stage,
         widget=Widget(type="choice", question="Who is the audience?",
                       options=[{"id": "internal", "label": "Internal teams"}],
                       allow_free_text=True),
         skill_preview={"name": name, "description": "Draft launch posts", "sections": []},
         draft=draft,
-        done=False,
+        done=done,
     )
 
 
@@ -131,6 +131,41 @@ def test_post_to_missing_build_is_404(tmp_path):
     app, _ = _app(FakeEngine([]), tmp_path)
     status, body = app.post_message("nope", {"text": "hi"})
     assert status == 404
+
+
+def test_unknown_stage_does_not_crash_and_keeps_stage(tmp_path):
+    # regression: a model turn with an invented stage (parsed to None) must not 422
+    turns = [
+        EngineResult(turn=_shape_turn(), session_id="s-1"),                    # idea -> shape
+        EngineResult(turn=_shape_turn(stage=None), session_id="s-1"),          # bad stage, stays shape
+    ]
+    app, store = _app(FakeEngine(turns), tmp_path)
+    app.create_build({})
+    app.post_message("b1", {"text": "an idea"})
+    status, body = app.post_message("b1", {"text": "external customers"})
+    assert status == 200
+    assert store.load("b1").stage == "shape"
+
+
+def test_done_advances_to_next_stage(tmp_path):
+    turns = [
+        EngineResult(turn=_shape_turn(), session_id="s-1"),                    # idea -> shape
+        EngineResult(turn=_shape_turn(stage=None, done=True), session_id="s-1"),  # done -> draft
+    ]
+    app, store = _app(FakeEngine(turns), tmp_path)
+    app.create_build({})
+    app.post_message("b1", {"text": "an idea"})
+    app.post_message("b1", {"text": "external customers"})
+    assert store.load("b1").stage == "draft"
+
+
+def test_first_message_auto_advances_idea_to_shape(tmp_path):
+    # even if the model keeps proposing stage "idea", giving the idea moves to shape
+    eng = FakeEngine([EngineResult(turn=_shape_turn(stage="idea"), session_id="s-1")])
+    app, store = _app(eng, tmp_path)
+    app.create_build({})
+    app.post_message("b1", {"text": "an idea"})
+    assert store.load("b1").stage == "shape"
 
 
 def test_test_message_runs_playground_and_returns_activation(tmp_path):
