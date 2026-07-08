@@ -16,6 +16,7 @@ from .installer import Installer
 from .playground import Playground
 from .prompts import SYSTEM_PROMPT
 from .server import App, make_server
+from .sharer import share_or_export
 from .store import Store
 
 UI_DIR = Path(__file__).parent / "ui"
@@ -38,6 +39,7 @@ def serve(host="127.0.0.1", port=0, open_browser=True):
         id_gen=_new_id,
         playground=Playground(),
         installer=Installer(),
+        sharer=share_or_export,
     )
     server = make_server(app, key=key, ui_dir=str(UI_DIR), host=host, port=port)
     actual_port = server.server_address[1]

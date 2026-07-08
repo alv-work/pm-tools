@@ -188,3 +188,24 @@ def test_install_collision_returns_409(tmp_path):
     status, body = app.post_install("b1", {})
     assert status == 409
     assert body["error"]["kind"] == "collision"
+
+
+def test_share_marks_shared_and_returns_mode(tmp_path):
+    from skills_builder.sharer import ShareResult
+    calls = {}
+
+    def sharer(skill_dir, name):
+        calls["name"] = name
+        return ShareResult(mode="pr", url="https://x/pull/1")
+
+    eng = FakeEngine([EngineResult(turn=_shape_turn(), session_id="s-1")])
+    store = Store(root=tmp_path)
+    app = App(store=store, engine=eng, clock=lambda: "t", id_gen=lambda: "b1", sharer=sharer)
+    app.create_build({})
+    app.post_message("b1", {"text": "hi"})
+    status, body = app.post_share("b1", {})
+    assert status == 200
+    assert body["mode"] == "pr"
+    assert body["url"] == "https://x/pull/1"
+    assert store.load("b1").status == "shared"
+    assert calls["name"] == "launch-announcements"

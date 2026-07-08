@@ -15,6 +15,7 @@ from pathlib import Path
 from . import flow
 from .engine import EngineError
 from .installer import InstallError
+from .sharer import ShareError
 from .store import StoreError
 
 TOOL_VERSION = "0.1.0"
@@ -30,13 +31,14 @@ _ERROR_STATUS = {
 
 
 class App:
-    def __init__(self, store, engine, clock, id_gen, playground=None, installer=None):
+    def __init__(self, store, engine, clock, id_gen, playground=None, installer=None, sharer=None):
         self._store = store
         self._engine = engine
         self._clock = clock
         self._id_gen = id_gen
         self._playground = playground
         self._installer = installer
+        self._sharer = sharer
 
     # ---- routes ---------------------------------------------------------
 
@@ -163,6 +165,26 @@ class App:
             "build": asdict(meta),
         }
 
+    def post_share(self, build_id, body):
+        try:
+            meta = self._store.load(build_id)
+        except StoreError:
+            return 404, {"error": {"kind": "not_found", "message": "No such build."}}
+        if not meta.skill_name:
+            return 400, {"error": {"kind": "no_draft", "message": "Nothing to share yet."}}
+
+        skill_dir = self._store.draft_path(build_id, meta.skill_name).parent
+        try:
+            result = self._sharer(skill_dir, meta.skill_name)
+        except ShareError as e:
+            return 502, {"error": {"kind": "share_failed", "message": str(e)}}
+
+        meta.status = "shared"
+        meta.updated_at = self._clock()
+        self._store.save(meta)
+        return 200, {"mode": result.mode, "url": result.url, "path": result.path,
+                     "build": asdict(meta)}
+
     # ---- helpers --------------------------------------------------------
 
     def _turn_to_entry(self, turn, stage):
@@ -249,6 +271,8 @@ def make_server(app, key, ui_dir, host="127.0.0.1", port=0):
                 return self._send_json(*app.post_test_message(parts[2], body))
             if len(parts) == 4 and parts[1] == "builds" and parts[3] == "install":
                 return self._send_json(*app.post_install(parts[2], body))
+            if len(parts) == 4 and parts[1] == "builds" and parts[3] == "share":
+                return self._send_json(*app.post_share(parts[2], body))
             return self._send_json(404, {"error": {"kind": "not_found"}})
 
         def _api_get(self, path):

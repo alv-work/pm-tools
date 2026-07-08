@@ -10,6 +10,9 @@ Renders a generated markdown file as HTML in your browser — Medium-style serif
 ### babysit-doc
 Watches a Confluence page's comment threads and drafts replies for you to approve before anything posts. Pair with `/loop` for continuous watching: `/loop 10m /babysit-doc <page-url>`. Needs `CONFLUENCE_BASE_URL`, `CONFLUENCE_EMAIL`, `CONFLUENCE_API_TOKEN`. See [babysit-doc/USAGE.md](babysit-doc/USAGE.md) for setup, the approval flow, and troubleshooting.
 
+### skills-builder
+A browser tool that lets non-technical PMs build, test, install, and share Claude skills without touching a terminal. `/skills-builder` starts a local server and opens a UI that walks you from idea → shaped questions → drafted skill → real playground test → one-click install. Underneath, a headless Claude session does the questioning and authoring. Needs the `claude` CLI logged in; Python stdlib only. See [skills-builder/USAGE.md](skills-builder/USAGE.md).
+
 ## Install
 
 ```
