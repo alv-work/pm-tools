@@ -79,7 +79,9 @@ class Engine:
             resume=resume,
             cwd=cwd,
             timeout=self._timeout,
-            system_prompt=self._system_prompt,
+            # The system prompt only takes effect when the session is created;
+            # on --resume turns claude ignores it, so we omit it.
+            system_prompt=self._system_prompt if resume is None else None,
             disallowed_tools=self._disallowed_tools,
         )
         if result.timed_out:

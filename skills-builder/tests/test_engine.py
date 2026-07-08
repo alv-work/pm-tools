@@ -93,3 +93,15 @@ def test_resume_passes_session_id_through():
     eng = Engine(cli=cli)
     eng.turn("next", session_id="s-9")
     assert cli.calls[0]["resume"] == "s-9"
+
+
+def test_system_prompt_sent_only_on_fresh_session():
+    cli = ScriptedCli([
+        CliResult(lines=_stream(VALID_TURN, "s-1"), returncode=0, stderr=""),
+        CliResult(lines=_stream(VALID_TURN, "s-1"), returncode=0, stderr=""),
+    ])
+    eng = Engine(cli=cli, system_prompt="SYS")
+    eng.turn("hi")                       # fresh session -> system prompt applies
+    eng.turn("again", session_id="s-1")  # resume -> omitted
+    assert cli.calls[0]["system_prompt"] == "SYS"
+    assert cli.calls[1]["system_prompt"] is None
