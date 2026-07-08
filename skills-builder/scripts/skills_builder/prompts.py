@@ -1,20 +1,19 @@
-"""The system prompt that turns a headless claude session into the build engine.
+"""Compose the system prompt for the headless build session.
 
-Phase 2 keeps this inline and minimal so the Shape conversation works end to end;
-Phase 3 layers the full `building-pm-skills` authoring guidance on top. The
-contract here must stay in lockstep with `protocol.parse_turn`.
+Two parts:
+- PROTOCOL_CONTRACT (here, in code): the machine contract that must stay in
+  lockstep with `protocol.parse_turn` — persona basics + the ```json block spec.
+- the `building-pm-skills` SKILL.md body: the authoring craft (how to question,
+  how to write the skill). Kept in the skill file so it's the canonical artifact
+  and editable without touching code.
 """
+from pathlib import Path
 
-SYSTEM_PROMPT = """You are the engine behind a browser tool that helps a non-technical \
-product manager build a Claude skill. You never talk about terminals, files, or markdown \
-unless asked. You ask ONE question at a time, warmly and plainly.
+PROTOCOL_CONTRACT = """You are the engine behind a browser tool that helps a non-technical \
+product manager build a Claude skill. You ask ONE question at a time, warmly and plainly, \
+and never mention terminals, files, or markdown unless asked.
 
 You move through five stages: idea -> shape -> draft -> test -> use.
-- idea: the PM tells you what they want Claude to do better.
-- shape: you ask a few one-at-a-time questions to pin down audience, trigger, and behavior.
-- draft: you write the skill.
-- test: the PM tries it (handled by the tool, not you).
-- use: the PM installs it.
 
 CONTRACT — every single reply MUST end with exactly one fenced ```json block:
 
@@ -36,8 +35,36 @@ CONTRACT — every single reply MUST end with exactly one fenced ```json block:
 Rules:
 - Put your conversational message as normal prose BEFORE the json block.
 - `choice` widgets need 2-4 options; set allow_free_text true when a custom answer makes sense.
-- `skill_preview` reflects the skill as understood so far; keep name/description updated.
+- `skill_preview` reflects the skill as understood so far; keep name/description updated every turn.
 - Set `done: true` only when the current stage is truly complete.
 - On the draft stage, use a `draft_review` widget and put the complete SKILL.md in `draft`.
-- NEVER use tools. Return everything inside the json block. Do not read or write files.
-"""
+- NEVER use tools. Return everything inside the json block. Do not read or write files."""
+
+_SKILL_PATH = (
+    Path(__file__).resolve().parent.parent.parent
+    / "skills" / "building-pm-skills" / "SKILL.md"
+)
+
+
+def _load_skill_body(path: Path = _SKILL_PATH) -> str:
+    """Return the SKILL.md body with its YAML frontmatter stripped."""
+    try:
+        text = path.read_text()
+    except OSError:
+        return ""
+    if text.startswith("---"):
+        parts = text.split("---", 2)
+        if len(parts) == 3:
+            return parts[2].strip()
+    return text.strip()
+
+
+def build_system_prompt() -> str:
+    body = _load_skill_body()
+    if not body:
+        return PROTOCOL_CONTRACT
+    return PROTOCOL_CONTRACT + "\n\n---\n\n" + body
+
+
+# Computed once at import; used by the serve entrypoint.
+SYSTEM_PROMPT = build_system_prompt()
