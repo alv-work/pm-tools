@@ -65,6 +65,16 @@ def test_no_result_event_is_treated_as_error():
     assert "without a result" in r.error_text
 
 
+def test_captures_permission_denials():
+    lines = _lines(
+        {"type": "system", "subtype": "init", "session_id": "s"},
+        {"type": "result", "subtype": "success", "is_error": False, "result": "ok",
+         "session_id": "s", "permission_denials": [{"tool_name": "Bash"}]},
+    )
+    r = parse_stream(lines)
+    assert r.permission_denials == [{"tool_name": "Bash"}]
+
+
 def test_falls_back_to_assistant_text_when_result_text_missing():
     lines = _lines(
         {"type": "assistant", "message": {"content": [{"type": "text", "text": "part A "}]}},

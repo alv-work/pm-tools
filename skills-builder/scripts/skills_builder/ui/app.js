@@ -68,10 +68,13 @@ async function startBuild() {
 
 let current = null; // {build, transcript}
 
+let pgMessages = []; // in-memory playground exchanges for the Test stage
+
 async function openBuild(id) {
   const { body } = await api("/api/builds/" + id);
   if (!body || !body.build) return showHome();
   current = { build: body.build, transcript: body.transcript || [] };
+  pgMessages = [];
   renderBuild();
 }
 
@@ -217,6 +220,7 @@ function errorCard(error, payload) {
 let previewMode = "friendly";
 
 function renderPreview() {
+  if (current.build.stage === "test") return renderPlayground();
   const panel = el("div", { class: "preview" });
   const last = lastAssistant();
   const preview = (last && last.skill_preview) || current.build.skillPreview || {};
@@ -248,6 +252,69 @@ function renderPreview() {
 function scrollMessages() {
   const m = document.getElementById("messages");
   if (m) m.scrollTop = m.scrollHeight;
+}
+
+// ---------------- Playground (Test stage) ----------------
+
+function renderPlayground() {
+  const panel = el("div", { class: "preview playground" });
+  panel.append(el("h3", null, "Try it out"));
+  panel.append(el("div", { class: "skill-desc" },
+    "Chat with a fresh Claude that has your skill loaded. Watch whether it activates."));
+  const list = el("div", { class: "pg-messages", id: "pg-messages" });
+  for (const m of pgMessages) list.append(pgBubble(m));
+  panel.append(list);
+
+  const ta = el("textarea", { placeholder: "Ask Claude something…", id: "pg-input" });
+  ta.addEventListener("keydown", (ev) => {
+    if (ev.key === "Enter" && (ev.metaKey || ev.ctrlKey)) { ev.preventDefault(); sendTest(); }
+  });
+  panel.append(el("div", { class: "composer-row" }, ta,
+    el("button", { class: "primary", onclick: sendTest }, "Send")));
+  panel.append(el("button", { class: "revise",
+    onclick: () => send({ text: "Something's off — let's revise the skill together." }) },
+    "Something's off ↩ Revise"));
+  return panel;
+}
+
+function pgBubble(m) {
+  if (m.who === "user") return el("div", { class: "bubble user" }, m.text);
+  const wrap = el("div", null);
+  const badge = m.activated
+    ? el("span", { class: "badge activated" }, "✓ Skill activated")
+    : el("span", { class: "badge inactive" }, "Skill did not activate");
+  wrap.append(badge, el("div", { class: "bubble assistant" }, m.text));
+  if (m.denied && m.denied.length) {
+    wrap.append(el("div", { class: "denied-note" },
+      "In the real app Claude would ask permission to use: " + m.denied.join(", ")));
+  }
+  return wrap;
+}
+
+async function sendTest() {
+  const ta = document.getElementById("pg-input");
+  const text = (ta && ta.value || "").trim();
+  if (!text) return;
+  pgMessages.push({ who: "user", text });
+  const list = document.getElementById("pg-messages");
+  list.append(pgBubble({ who: "user", text }));
+  const spin = el("div", { class: "bubble assistant spinner" }, "Running…");
+  list.append(spin);
+  ta.value = "";
+
+  const { status, body } = await api("/api/builds/" + current.build.id + "/test/message", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ text }),
+  });
+  spin.remove();
+  if (status !== 200 || !body || body.error) {
+    list.append(errorCard(body && body.error, null));
+    return;
+  }
+  const msg = { who: "assistant", text: body.reply, activated: body.activated, denied: body.denied_tools };
+  pgMessages.push(msg);
+  list.append(pgBubble(msg));
 }
 
 // ---------------- boot ----------------

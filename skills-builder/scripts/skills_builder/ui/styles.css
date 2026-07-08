@@ -77,6 +77,15 @@ button:disabled { opacity: 0.5; cursor: default; }
 .toggle button.active { background: var(--accent); color: #fff; border-color: var(--accent); }
 pre.markdown { background: #0f1117; color: #e6e8ef; padding: 14px; border-radius: 8px; font-size: 12px; overflow-x: auto; white-space: pre-wrap; }
 
+/* ---- Playground ---- */
+.playground .pg-messages { display: flex; flex-direction: column; gap: 10px; margin: 14px 0; }
+.playground .bubble { max-width: 100%; font-size: 13px; }
+.badge { display: inline-block; font-size: 11px; padding: 2px 8px; border-radius: 999px; margin-bottom: 4px; }
+.badge.activated { background: #ecfdf5; color: var(--ok); }
+.badge.inactive { background: #fef2f2; color: #991b1b; }
+.denied-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
+.revise { margin-top: 12px; width: 100%; border-color: var(--warn); color: var(--warn); }
+
 /* ---- Error card ---- */
 .error-card { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: var(--radius); padding: 14px; align-self: flex-start; max-width: 640px; }
 .error-card .retry { margin-top: 10px; }

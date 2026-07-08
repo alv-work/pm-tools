@@ -26,6 +26,7 @@ class BuildMeta:
     title: str = "Untitled skill"
     skill_name: Optional[str] = None
     session_id: Optional[str] = None
+    test_session_id: Optional[str] = None
     created_at: str = ""
     updated_at: str = ""
 
@@ -36,6 +37,10 @@ class Store:
 
     def _dir(self, build_id: str) -> Path:
         return self.root / build_id
+
+    def build_dir(self, build_id: str) -> Path:
+        """The build's root — used as cwd so the draft loads as a project skill."""
+        return self._dir(build_id)
 
     def create(self, build_id: str, now: str, title: str = "Untitled skill") -> BuildMeta:
         d = self._dir(build_id)

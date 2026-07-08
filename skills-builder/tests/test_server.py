@@ -31,12 +31,23 @@ def _shape_turn(name="launch-announcements", draft=None):
     )
 
 
-def _app(engine, tmp_path, ids=("b1",)):
+def _app(engine, tmp_path, ids=("b1",), playground=None):
     store = Store(root=tmp_path)
     idq = list(ids)
     return App(store=store, engine=engine,
                clock=lambda: "2026-07-08T00:00:00Z",
-               id_gen=lambda: idq.pop(0)), store
+               id_gen=lambda: idq.pop(0), playground=playground), store
+
+
+class FakePlayground:
+    def __init__(self, result):
+        self._result = result
+        self.calls = []
+
+    def run(self, build_dir, skill_name, message, session_id=None):
+        self.calls.append({"build_dir": str(build_dir), "skill_name": skill_name,
+                           "message": message, "session_id": session_id})
+        return self._result
 
 
 def test_create_build_starts_at_idea(tmp_path):
@@ -106,3 +117,30 @@ def test_post_to_missing_build_is_404(tmp_path):
     app, _ = _app(FakeEngine([]), tmp_path)
     status, body = app.post_message("nope", {"text": "hi"})
     assert status == 404
+
+
+def test_test_message_runs_playground_and_returns_activation(tmp_path):
+    from skills_builder.playground import PlaygroundResult
+    pg = FakePlayground(PlaygroundResult(
+        reply="Here's your post.", activated=True, denied_tools=["Bash"], session_id="pg-1"))
+    eng = FakeEngine([EngineResult(turn=_shape_turn(), session_id="s-1")])
+    app, store = _app(eng, tmp_path, playground=pg)
+    app.create_build({})
+    app.post_message("b1", {"text": "hi"})          # sets skill_name
+    status, body = app.post_test_message("b1", {"text": "Draft a post"})
+    assert status == 200
+    assert body["activated"] is True
+    assert body["reply"] == "Here's your post."
+    assert body["denied_tools"] == ["Bash"]
+    # playground got the build dir and skill name; session persisted
+    assert pg.calls[0]["skill_name"] == "launch-announcements"
+    assert store.load("b1").test_session_id == "pg-1"
+
+
+def test_test_message_without_draft_is_400(tmp_path):
+    pg = FakePlayground(None)
+    app, _ = _app(FakeEngine([]), tmp_path, playground=pg)
+    app.create_build({})
+    status, body = app.post_test_message("b1", {"text": "hi"})
+    assert status == 400
+    assert body["error"]["kind"] == "no_draft"

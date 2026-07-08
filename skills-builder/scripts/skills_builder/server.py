@@ -27,11 +27,12 @@ _ERROR_STATUS = {
 
 
 class App:
-    def __init__(self, store, engine, clock, id_gen):
+    def __init__(self, store, engine, clock, id_gen, playground=None):
         self._store = store
         self._engine = engine
         self._clock = clock
         self._id_gen = id_gen
+        self._playground = playground
 
     # ---- routes ---------------------------------------------------------
 
@@ -93,6 +94,34 @@ class App:
         entry = self._turn_to_entry(turn, meta.stage)
         self._store.append_transcript(build_id, entry)
         return 200, {"turn": entry, "build": asdict(meta)}
+
+    def post_test_message(self, build_id, body):
+        try:
+            meta = self._store.load(build_id)
+        except StoreError:
+            return 404, {"error": {"kind": "not_found", "message": "No such build."}}
+        if not meta.skill_name:
+            return 400, {"error": {"kind": "no_draft", "message": "Nothing to test yet."}}
+
+        message = str((body or {}).get("text", "")).strip()
+        if not message:
+            return 400, {"error": {"kind": "bad_request", "message": "Empty message."}}
+
+        result = self._playground.run(
+            self._store.build_dir(build_id), meta.skill_name, message,
+            session_id=meta.test_session_id,
+        )
+        if result.is_error:
+            return 502, {"error": {"kind": "crash", "message": "The test run failed.",
+                                   "detail": result.error_text}}
+        meta.test_session_id = result.session_id or meta.test_session_id
+        meta.updated_at = self._clock()
+        self._store.save(meta)
+        return 200, {
+            "reply": result.reply,
+            "activated": result.activated,
+            "denied_tools": result.denied_tools,
+        }
 
     # ---- helpers --------------------------------------------------------
 
@@ -176,6 +205,8 @@ def make_server(app, key, ui_dir, host="127.0.0.1", port=0):
             parts = path.strip("/").split("/")
             if len(parts) == 4 and parts[1] == "builds" and parts[3] == "message":
                 return self._send_json(*app.post_message(parts[2], body))
+            if len(parts) == 5 and parts[1] == "builds" and parts[3:] == ["test", "message"]:
+                return self._send_json(*app.post_test_message(parts[2], body))
             return self._send_json(404, {"error": {"kind": "not_found"}})
 
         def _api_get(self, path):

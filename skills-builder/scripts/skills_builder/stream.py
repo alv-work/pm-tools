@@ -6,7 +6,7 @@ needs — the final assistant text, tool calls, session id, and error state — 
 skip everything else (including non-JSON lines) defensively.
 """
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from typing import Iterable, Optional
 
 
@@ -17,6 +17,7 @@ class StreamResult:
     session_id: Optional[str]
     is_error: bool
     error_text: Optional[str]
+    permission_denials: list = field(default_factory=list)
 
     @property
     def tool_names(self):
@@ -31,6 +32,7 @@ def parse_stream(lines: Iterable[str]) -> StreamResult:
     is_error = False
     error_text = None
     saw_result = False
+    permission_denials = []
 
     for line in lines:
         if not isinstance(line, str):
@@ -66,6 +68,9 @@ def parse_stream(lines: Iterable[str]) -> StreamResult:
             saw_result = True
             if evt.get("session_id"):
                 session_id = evt["session_id"]
+            pd = evt.get("permission_denials")
+            if isinstance(pd, list):
+                permission_denials = pd
             is_error = bool(evt.get("is_error", False))
             res = evt.get("result")
             if isinstance(res, str):
@@ -87,4 +92,5 @@ def parse_stream(lines: Iterable[str]) -> StreamResult:
         session_id=session_id,
         is_error=is_error,
         error_text=error_text,
+        permission_denials=permission_denials,
     )
