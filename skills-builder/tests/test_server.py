@@ -31,12 +31,26 @@ def _shape_turn(name="launch-announcements", draft=None):
     )
 
 
-def _app(engine, tmp_path, ids=("b1",), playground=None):
+def _app(engine, tmp_path, ids=("b1",), playground=None, installer=None):
     store = Store(root=tmp_path)
     idq = list(ids)
     return App(store=store, engine=engine,
                clock=lambda: "2026-07-08T00:00:00Z",
-               id_gen=lambda: idq.pop(0), playground=playground), store
+               id_gen=lambda: idq.pop(0), playground=playground,
+               installer=installer), store
+
+
+class FakeInstaller:
+    def __init__(self, result=None, error=None):
+        self._result = result
+        self._error = error
+        self.calls = []
+
+    def install(self, src, name, provenance, overwrite=False):
+        self.calls.append({"name": name, "overwrite": overwrite, "provenance": provenance})
+        if self._error:
+            raise self._error
+        return self._result
 
 
 class FakePlayground:
@@ -144,3 +158,33 @@ def test_test_message_without_draft_is_400(tmp_path):
     status, body = app.post_test_message("b1", {"text": "hi"})
     assert status == 400
     assert body["error"]["kind"] == "no_draft"
+
+
+def test_install_marks_installed_and_advances_to_use(tmp_path):
+    from skills_builder.installer import InstallResult
+    inst = FakeInstaller(result=InstallResult(name="launch-announcements",
+                                              path="/skills/launch-announcements", overwritten=False))
+    eng = FakeEngine([EngineResult(turn=_shape_turn(), session_id="s-1")])
+    app, store = _app(eng, tmp_path, installer=inst)
+    app.create_build({})
+    app.post_message("b1", {"text": "hi"})    # sets skill_name
+    meta = store.load("b1"); meta.stage = "test"; store.save(meta)  # at Test, ready to install
+    status, body = app.post_install("b1", {})
+    assert status == 200
+    assert body["installed"]["name"] == "launch-announcements"
+    reloaded = store.load("b1")
+    assert reloaded.status == "installed"
+    assert reloaded.stage == "use"
+    assert inst.calls[0]["provenance"]["build_id"] == "b1"
+
+
+def test_install_collision_returns_409(tmp_path):
+    from skills_builder.installer import InstallError
+    inst = FakeInstaller(error=InstallError("A skill named 'x' is already installed."))
+    eng = FakeEngine([EngineResult(turn=_shape_turn(), session_id="s-1")])
+    app, _ = _app(eng, tmp_path, installer=inst)
+    app.create_build({})
+    app.post_message("b1", {"text": "hi"})
+    status, body = app.post_install("b1", {})
+    assert status == 409
+    assert body["error"]["kind"] == "collision"

@@ -14,7 +14,10 @@ from pathlib import Path
 
 from . import flow
 from .engine import EngineError
+from .installer import InstallError
 from .store import StoreError
+
+TOOL_VERSION = "0.1.0"
 
 # Map engine failure kinds to HTTP status codes; the UI keys its error cards off `kind`.
 _ERROR_STATUS = {
@@ -27,12 +30,13 @@ _ERROR_STATUS = {
 
 
 class App:
-    def __init__(self, store, engine, clock, id_gen, playground=None):
+    def __init__(self, store, engine, clock, id_gen, playground=None, installer=None):
         self._store = store
         self._engine = engine
         self._clock = clock
         self._id_gen = id_gen
         self._playground = playground
+        self._installer = installer
 
     # ---- routes ---------------------------------------------------------
 
@@ -123,6 +127,42 @@ class App:
             "denied_tools": result.denied_tools,
         }
 
+    def post_install(self, build_id, body):
+        try:
+            meta = self._store.load(build_id)
+        except StoreError:
+            return 404, {"error": {"kind": "not_found", "message": "No such build."}}
+        if not meta.skill_name:
+            return 400, {"error": {"kind": "no_draft", "message": "Nothing to install yet."}}
+
+        body = body or {}
+        name = (body.get("name") or meta.skill_name).strip()
+        overwrite = bool(body.get("overwrite"))
+        src = self._store.draft_path(build_id, meta.skill_name).parent
+        provenance = {
+            "build_id": build_id,
+            "skill_name": name,
+            "installed_at": self._clock(),
+            "tool_version": TOOL_VERSION,
+        }
+        try:
+            result = self._installer.install(src, name, provenance, overwrite=overwrite)
+        except InstallError as e:
+            kind = "collision" if "already installed" in str(e) else "install_failed"
+            status = 409 if kind == "collision" else 400
+            return status, {"error": {"kind": kind, "message": str(e)}}
+
+        meta.skill_name = name
+        meta.status = "installed"
+        if flow.can_transition(meta.stage, "use"):
+            meta.stage = "use"
+        meta.updated_at = self._clock()
+        self._store.save(meta)
+        return 200, {
+            "installed": {"name": result.name, "path": result.path, "overwritten": result.overwritten},
+            "build": asdict(meta),
+        }
+
     # ---- helpers --------------------------------------------------------
 
     def _turn_to_entry(self, turn, stage):
@@ -207,6 +247,8 @@ def make_server(app, key, ui_dir, host="127.0.0.1", port=0):
                 return self._send_json(*app.post_message(parts[2], body))
             if len(parts) == 5 and parts[1] == "builds" and parts[3:] == ["test", "message"]:
                 return self._send_json(*app.post_test_message(parts[2], body))
+            if len(parts) == 4 and parts[1] == "builds" and parts[3] == "install":
+                return self._send_json(*app.post_install(parts[2], body))
             return self._send_json(404, {"error": {"kind": "not_found"}})
 
         def _api_get(self, path):

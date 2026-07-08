@@ -221,6 +221,7 @@ let previewMode = "friendly";
 
 function renderPreview() {
   if (current.build.stage === "test") return renderPlayground();
+  if (current.build.stage === "use") return renderUse();
   const panel = el("div", { class: "preview" });
   const last = lastAssistant();
   const preview = (last && last.skill_preview) || current.build.skillPreview || {};
@@ -247,6 +248,75 @@ function renderPreview() {
     for (const s of (preview.sections || [])) panel.append(el("div", { class: "section" }, s));
   }
   return panel;
+}
+
+// ---------------- Use stage ----------------
+
+function renderUse() {
+  const panel = el("div", { class: "preview use", id: "use-panel" });
+  const name = current.build.skill_name || "your skill";
+  panel.append(el("h3", null, "Ready to use"));
+  panel.append(el("div", { class: "skill-name" }, name));
+
+  if (current.build.status === "installed" || current.build.status === "shared") {
+    panel.append(el("div", { class: "installed-ok" }, "✓ Installed to your skills"));
+    panel.append(el("h3", { style: "margin-top:18px" }, "Starter prompt"));
+    const starter = "Start any Claude session — this skill will activate on its own when it's relevant. To try it now, ask something like the examples you gave.";
+    panel.append(el("div", { class: "starter" }, starter));
+    panel.append(el("button", { class: "primary share",
+      onclick: doShare }, "Share to team"));
+  } else {
+    panel.append(el("div", { class: "skill-desc" }, "Install this skill so Claude can use it everywhere."));
+    panel.append(el("button", { class: "primary", onclick: () => doInstall({}) }, "Install skill"));
+  }
+  return panel;
+}
+
+async function doInstall(payload) {
+  const panel = document.getElementById("use-panel");
+  const { status, body } = await api("/api/builds/" + current.build.id + "/install", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify(payload || {}),
+  });
+  if (status === 200) {
+    current.build = body.build;
+    return renderBuild();
+  }
+  if (status === 409) {
+    // collision — offer overwrite or rename
+    const box = el("div", { class: "error-card" });
+    box.append(el("div", null, (body.error && body.error.message) || "That name is taken."));
+    const row = el("div", { class: "composer-row", style: "margin-top:10px" });
+    row.append(el("button", { onclick: () => doInstall({ overwrite: true }) }, "Overwrite"));
+    const nameInput = el("input", { placeholder: "new-name", id: "rename-input" });
+    row.append(nameInput, el("button", {
+      onclick: () => {
+        const v = (document.getElementById("rename-input").value || "").trim();
+        if (v) doInstall({ name: v });
+      },
+    }, "Rename & install"));
+    box.append(row);
+    panel.append(box);
+    return;
+  }
+  panel.append(errorCard(body && body.error, null));
+}
+
+async function doShare() {
+  const panel = document.getElementById("use-panel");
+  const { status, body } = await api("/api/builds/" + current.build.id + "/share", {
+    method: "POST", headers: { "Content-Type": "application/json" }, body: "{}",
+  });
+  if (status === 200 && body) {
+    current.build = body.build || current.build;
+    const msg = body.mode === "pr"
+      ? "Opened a pull request: " + (body.url || "")
+      : "Exported to: " + (body.path || "your Downloads");
+    panel.append(el("div", { class: "installed-ok", style: "margin-top:12px" }, msg));
+  } else {
+    panel.append(errorCard(body && body.error, null));
+  }
 }
 
 function scrollMessages() {

@@ -86,6 +86,13 @@ pre.markdown { background: #0f1117; color: #e6e8ef; padding: 14px; border-radius
 .denied-note { font-size: 12px; color: var(--muted); font-style: italic; margin-top: 4px; }
 .revise { margin-top: 12px; width: 100%; border-color: var(--warn); color: var(--warn); }
 
+/* ---- Use stage ---- */
+.use .installed-ok { color: var(--ok); font-weight: 600; margin: 8px 0; }
+.use .starter { background: var(--accent-soft); border-radius: 8px; padding: 12px; font-size: 13px; color: var(--ink); margin-bottom: 14px; }
+.use .primary { width: 100%; }
+.use .share { margin-top: 12px; }
+.use input, #rename-input { border: 1px solid var(--line); border-radius: 8px; padding: 8px; font: inherit; }
+
 /* ---- Error card ---- */
 .error-card { background: #fef2f2; border: 1px solid #fecaca; color: #991b1b; border-radius: var(--radius); padding: 14px; align-self: flex-start; max-width: 640px; }
 .error-card .retry { margin-top: 10px; }

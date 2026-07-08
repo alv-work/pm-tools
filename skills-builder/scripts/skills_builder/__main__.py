@@ -12,6 +12,7 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from .engine import Engine
+from .installer import Installer
 from .playground import Playground
 from .prompts import SYSTEM_PROMPT
 from .server import App, make_server
@@ -36,6 +37,7 @@ def serve(host="127.0.0.1", port=0, open_browser=True):
         clock=_now,
         id_gen=_new_id,
         playground=Playground(),
+        installer=Installer(),
     )
     server = make_server(app, key=key, ui_dir=str(UI_DIR), host=host, port=port)
     actual_port = server.server_address[1]
