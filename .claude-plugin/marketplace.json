@@ -15,6 +15,12 @@
       "source": "./babysit-doc",
       "description": "Watch a Confluence page's comment threads and surface Claude-drafted replies to approve before posting.",
       "version": "0.1.0"
+    },
+    {
+      "name": "skills-builder",
+      "source": "./skills-builder",
+      "description": "A browser interface that lets PMs build, test, install, and share Claude skills without touching a terminal.",
+      "version": "0.1.0"
     }
   ]
 }

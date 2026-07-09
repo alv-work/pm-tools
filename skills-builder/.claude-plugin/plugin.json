@@ -1,0 +1,6 @@
+{
+  "name": "skills-builder",
+  "description": "A browser interface that lets PMs build, test, install, and share Claude skills without touching a terminal.",
+  "version": "0.1.0",
+  "author": { "name": "Alabhya Vaibhav" }
+}

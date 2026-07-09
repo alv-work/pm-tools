@@ -1,0 +1,469 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Skills Builder — medium-fi mockup</title>
+<style>
+  :root {
+    --bg: #f6f7f9;
+    --surface: #ffffff;
+    --surface-2: #f0f2f5;
+    --ink: #1c2024;
+    --ink-2: #5b6470;
+    --ink-3: #8b94a1;
+    --line: #e3e7ec;
+    --accent: #4f46e5;
+    --accent-soft: #eef0fe;
+    --ok: #157f52;
+    --ok-soft: #e5f4ec;
+    --warn: #9a6a00;
+    --warn-soft: #fbf1dc;
+    --radius: 12px;
+    --shadow: 0 1px 2px rgba(20,24,32,.06), 0 4px 16px rgba(20,24,32,.05);
+    --font: -apple-system, BlinkMacSystemFont, "Segoe UI", Inter, Roboto, sans-serif;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0; font-family: var(--font); color: var(--ink);
+    background: var(--bg); font-size: 14px; line-height: 1.5;
+  }
+  .mock-note {
+    background: #1c2024; color: #cfd6df; font-size: 12px;
+    padding: 6px 16px; text-align: center; letter-spacing: .02em;
+  }
+  .mock-note b { color: #fff; }
+
+  /* ---------- top bar ---------- */
+  .topbar {
+    height: 56px; background: var(--surface); border-bottom: 1px solid var(--line);
+    display: flex; align-items: center; gap: 14px; padding: 0 20px;
+  }
+  .logo { display: flex; align-items: center; gap: 9px; font-weight: 650; }
+  .logo .glyph {
+    width: 26px; height: 26px; border-radius: 7px;
+    background: linear-gradient(135deg, var(--accent), #8b5cf6);
+    display: grid; place-items: center; color: #fff; font-size: 14px;
+  }
+  .topbar .spacer { flex: 1; }
+  .crumb { color: var(--ink-3); font-size: 13px; }
+  .crumb b { color: var(--ink-2); font-weight: 600; }
+  .btn {
+    border: 1px solid var(--line); background: var(--surface); color: var(--ink);
+    padding: 8px 14px; border-radius: 8px; font-size: 13px; font-weight: 550;
+    cursor: pointer; font-family: inherit;
+  }
+  .btn:hover { background: var(--surface-2); }
+  .btn.primary { background: var(--accent); color: #fff; border-color: var(--accent); }
+  .btn.primary:hover { filter: brightness(1.06); }
+  .btn.ghost { border-color: transparent; background: transparent; color: var(--ink-2); }
+  .btn.sm { padding: 5px 10px; font-size: 12px; }
+
+  /* ---------- view switch ---------- */
+  .view { display: none; }
+  .view.active { display: block; }
+
+  /* ---------- home gallery ---------- */
+  .home { max-width: 1040px; margin: 0 auto; padding: 32px 24px 60px; }
+  .home h1 { font-size: 22px; margin: 0 0 4px; }
+  .home .sub { color: var(--ink-2); margin: 0 0 24px; }
+  .gallery { display: grid; grid-template-columns: repeat(auto-fill, minmax(240px, 1fr)); gap: 16px; }
+  .card {
+    background: var(--surface); border: 1px solid var(--line); border-radius: var(--radius);
+    padding: 16px; box-shadow: var(--shadow); cursor: pointer; transition: transform .08s;
+    display: flex; flex-direction: column; min-height: 140px;
+  }
+  .card:hover { transform: translateY(-2px); }
+  .card.new {
+    border-style: dashed; box-shadow: none; align-items: center; justify-content: center;
+    color: var(--accent); font-weight: 600; gap: 8px; background: var(--accent-soft);
+  }
+  .card.new .plus { font-size: 26px; line-height: 1; }
+  .card h3 { margin: 0 0 6px; font-size: 15px; }
+  .card p { margin: 0; color: var(--ink-2); font-size: 13px; flex: 1; }
+  .card .meta { margin-top: 12px; display: flex; align-items: center; gap: 8px; color: var(--ink-3); font-size: 12px; }
+  .pill {
+    font-size: 11px; font-weight: 600; padding: 2px 8px; border-radius: 999px; letter-spacing: .02em;
+  }
+  .pill.draft { background: var(--warn-soft); color: var(--warn); }
+  .pill.installed { background: var(--ok-soft); color: var(--ok); }
+  .pill.shared { background: var(--accent-soft); color: var(--accent); }
+
+  /* ---------- build layout ---------- */
+  .build { display: grid; grid-template-columns: 210px 1fr 340px; height: calc(100vh - 56px - 25px); }
+  .rail { border-right: 1px solid var(--line); background: var(--surface); padding: 24px 16px; }
+  .rail h4 { font-size: 11px; text-transform: uppercase; letter-spacing: .08em; color: var(--ink-3); margin: 0 0 16px; }
+  .step { display: flex; gap: 12px; align-items: flex-start; padding: 8px 0; cursor: pointer; position: relative; }
+  .step .dot {
+    width: 24px; height: 24px; border-radius: 50%; border: 2px solid var(--line);
+    display: grid; place-items: center; font-size: 12px; font-weight: 600; color: var(--ink-3);
+    background: var(--surface); flex: none; z-index: 1;
+  }
+  .step:not(:last-child)::before {
+    content: ""; position: absolute; left: 11px; top: 30px; bottom: -6px; width: 2px; background: var(--line);
+  }
+  .step .label { font-size: 13px; color: var(--ink-2); padding-top: 3px; }
+  .step .label small { display: block; color: var(--ink-3); font-size: 11px; }
+  .step.done .dot { background: var(--ok); border-color: var(--ok); color: #fff; }
+  .step.done::before { background: var(--ok); }
+  .step.active .dot { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .step.active .label { color: var(--ink); font-weight: 600; }
+
+  /* ---------- conversation center ---------- */
+  .center { display: flex; flex-direction: column; background: var(--bg); overflow: hidden; }
+  .center .scroll { flex: 1; overflow-y: auto; padding: 28px 32px; }
+  .stage-title { font-size: 12px; font-weight: 600; text-transform: uppercase; letter-spacing: .06em; color: var(--accent); margin-bottom: 16px; }
+  .bubble { max-width: 560px; margin-bottom: 16px; }
+  .bubble.bot .body {
+    background: var(--surface); border: 1px solid var(--line); border-radius: 4px 14px 14px 14px;
+    padding: 12px 16px; box-shadow: var(--shadow);
+  }
+  .bubble.me { margin-left: auto; }
+  .bubble.me .body {
+    background: var(--accent); color: #fff; border-radius: 14px 4px 14px 14px; padding: 10px 15px; display: inline-block;
+  }
+  .choices { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 12px; }
+  .choice {
+    border: 1px solid var(--line); background: var(--surface); border-radius: 999px;
+    padding: 8px 15px; font-size: 13px; cursor: pointer; font-weight: 550;
+  }
+  .choice:hover { border-color: var(--accent); color: var(--accent); background: var(--accent-soft); }
+  .composer { border-top: 1px solid var(--line); background: var(--surface); padding: 12px 20px; display: flex; gap: 10px; align-items: center; }
+  .composer input {
+    flex: 1; border: 1px solid var(--line); border-radius: 10px; padding: 11px 14px; font-size: 14px; font-family: inherit; outline: none;
+  }
+  .composer input:focus { border-color: var(--accent); }
+
+  .example-chips { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 14px; }
+  .chip { background: var(--surface-2); border-radius: 8px; padding: 7px 12px; font-size: 12px; color: var(--ink-2); cursor: pointer; }
+  .chip:hover { color: var(--accent); }
+
+  /* activation badge (Test stage) */
+  .badge { display: inline-flex; align-items: center; gap: 5px; font-size: 11px; font-weight: 600; padding: 3px 9px; border-radius: 999px; margin-bottom: 8px; }
+  .badge.on { background: var(--ok-soft); color: var(--ok); }
+  .badge.off { background: var(--surface-2); color: var(--ink-3); }
+
+  /* ---------- preview panel ---------- */
+  .preview { border-left: 1px solid var(--line); background: var(--surface); display: flex; flex-direction: column; overflow: hidden; }
+  .preview .phead { padding: 16px 20px; border-bottom: 1px solid var(--line); display: flex; align-items: center; justify-content: space-between; }
+  .preview .phead h4 { margin: 0; font-size: 13px; }
+  .preview .pbody { flex: 1; overflow-y: auto; padding: 20px; }
+  .kv { margin-bottom: 18px; }
+  .kv .k { font-size: 11px; text-transform: uppercase; letter-spacing: .06em; color: var(--ink-3); margin-bottom: 5px; }
+  .kv .v { font-size: 14px; }
+  .kv .v.mono { font-family: ui-monospace, SFMono-Regular, Menlo, monospace; font-size: 13px; background: var(--surface-2); padding: 6px 9px; border-radius: 7px; display: inline-block; }
+  .triggers { display: flex; flex-wrap: wrap; gap: 6px; }
+  .trigger { font-size: 12px; background: var(--accent-soft); color: var(--accent); padding: 4px 10px; border-radius: 7px; }
+  .section-list { list-style: none; padding: 0; margin: 0; }
+  .section-list li { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: 13px; display: flex; gap: 8px; }
+  .section-list li::before { content: "▸"; color: var(--ink-3); }
+  .toggle { display: flex; gap: 4px; background: var(--surface-2); padding: 3px; border-radius: 8px; }
+  .toggle button { border: none; background: transparent; padding: 5px 11px; border-radius: 6px; font-size: 12px; cursor: pointer; font-family: inherit; color: var(--ink-2); }
+  .toggle button.on { background: var(--surface); color: var(--ink); box-shadow: var(--shadow); font-weight: 600; }
+  pre.md { margin: 0; background: #1c2024; color: #dfe4ea; padding: 16px; border-radius: 10px; font-size: 12px; overflow-x: auto; font-family: ui-monospace, Menlo, monospace; line-height: 1.6; }
+  .use-actions { display: flex; flex-direction: column; gap: 10px; }
+  .use-actions .btn { width: 100%; justify-content: center; }
+  .starter { background: var(--surface-2); border-radius: 9px; padding: 12px; font-size: 13px; font-family: ui-monospace, Menlo, monospace; color: var(--ink-2); position: relative; }
+
+  .hidden { display: none !important; }
+</style>
+</head>
+<body>
+<div class="mock-note">MEDIUM-FIDELITY MOCKUP — <b>Skills Builder</b> · layout + flow only, not wired to the engine</div>
+
+<div class="topbar">
+  <div class="logo"><span class="glyph">✦</span> Skills Builder</div>
+  <span class="crumb" id="crumb"></span>
+  <span class="spacer"></span>
+  <button class="btn ghost" onclick="showHome()">My Skills</button>
+  <button class="btn primary" onclick="openBuild('idea')">Build a new skill</button>
+</div>
+
+<!-- ===================== HOME ===================== -->
+<section id="home" class="view active">
+  <div class="home">
+    <h1>My Skills</h1>
+    <p class="sub">Skills you've built here. Pick one to resume, test, or share — or start something new.</p>
+    <div class="gallery">
+      <div class="card new" onclick="openBuild('idea')">
+        <span class="plus">+</span>
+        <span>Build a new skill</span>
+      </div>
+      <div class="card" onclick="openBuild('use')">
+        <h3>launch-announcements</h3>
+        <p>Drafts internal launch posts in our house voice from a feature brief.</p>
+        <div class="meta"><span class="pill installed">Installed</span><span>· updated 2h ago</span></div>
+      </div>
+      <div class="card" onclick="openBuild('draft')">
+        <h3>standup-summary</h3>
+        <p>Turns raw standup notes into a crisp status others can skim.</p>
+        <div class="meta"><span class="pill draft">Draft</span><span>· Draft stage</span></div>
+      </div>
+      <div class="card" onclick="openBuild('use')">
+        <h3>prd-reviewer</h3>
+        <p>Checks a PRD against our template and flags missing sections.</p>
+        <div class="meta"><span class="pill shared">Shared</span><span>· PR #42</span></div>
+      </div>
+      <div class="card" onclick="openBuild('shape')">
+        <h3>competitor-digest</h3>
+        <p>Summarizes competitor release notes into a weekly digest.</p>
+        <div class="meta"><span class="pill draft">Draft</span><span>· Shape stage</span></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ===================== BUILD ===================== -->
+<section id="build" class="view">
+  <div class="build">
+    <!-- journey rail -->
+    <nav class="rail">
+      <h4>Your skill's journey</h4>
+      <div id="rail"></div>
+    </nav>
+
+    <!-- conversation center -->
+    <div class="center">
+      <div class="scroll" id="convo"></div>
+      <div class="composer" id="composer">
+        <input id="composerInput" placeholder="Type your answer…" />
+        <button class="btn primary" onclick="sendFree()">Send</button>
+      </div>
+    </div>
+
+    <!-- live preview -->
+    <aside class="preview">
+      <div class="phead">
+        <h4 id="previewTitle">Skill preview</h4>
+        <div class="toggle hidden" id="mdToggle">
+          <button class="on" onclick="setMd(false)">Friendly</button>
+          <button onclick="setMd(true)">Markdown</button>
+        </div>
+      </div>
+      <div class="pbody" id="preview"></div>
+    </aside>
+  </div>
+</section>
+
+<script>
+// ---------- stage model ----------
+const STAGES = [
+  { id: "idea",  label: "Idea",  hint: "What to improve" },
+  { id: "shape", label: "Shape", hint: "Answer a few questions" },
+  { id: "draft", label: "Draft", hint: "Review the skill" },
+  { id: "test",  label: "Test",  hint: "Try it live" },
+  { id: "use",   label: "Use",   hint: "Install & share" },
+];
+let current = "idea";
+let showMd = false;
+
+const SKILL = {
+  name: "launch-announcements",
+  description: "Drafts internal launch announcement posts in the team's house voice from a short feature brief.",
+  triggers: ["announce a launch", "write a launch post", "feature announcement"],
+  sections: ["When it activates", "Gather the brief", "House voice rules", "Draft structure", "Examples"],
+};
+
+const MD = `---
+name: launch-announcements
+description: Use when a PM needs to announce a
+  feature launch to internal teams. Drafts a post
+  in the house voice from a short brief.
+---
+
+# Launch Announcements
+
+## When it activates
+Triggers on "announce a launch", "write a launch
+post", or a pasted feature brief.
+
+## Gather the brief
+Ask for: what shipped, who it's for, the one-line
+value, and the go-live date.
+
+## House voice rules
+- Lead with the user outcome, not the feature name.
+- Second person, active voice, no hype adjectives.
+...`;
+
+// ---------- rendering ----------
+function idx(id) { return STAGES.findIndex(s => s.id === id); }
+
+function renderRail() {
+  const cur = idx(current);
+  document.getElementById("rail").innerHTML = STAGES.map((s, i) => {
+    const cls = i < cur ? "done" : i === cur ? "active" : "";
+    const mark = i < cur ? "✓" : (i + 1);
+    return `<div class="step ${cls}" onclick="goStage('${s.id}')">
+      <div class="dot">${mark}</div>
+      <div class="label">${s.label}<small>${s.hint}</small></div>
+    </div>`;
+  }).join("");
+}
+
+function renderConvo() {
+  const c = document.getElementById("convo");
+  const composer = document.getElementById("composer");
+  composer.classList.remove("hidden");
+
+  if (current === "idea") {
+    c.innerHTML = `
+      <div class="stage-title">Idea</div>
+      <div class="bubble bot"><div class="body">
+        What do you want Claude to do better? Describe it like you'd tell a teammate — no jargon needed.
+      </div></div>
+      <div class="example-chips">
+        <div class="chip" onclick="goStage('shape')">"Help me write launch posts"</div>
+        <div class="chip" onclick="goStage('shape')">"Summarize my standup notes"</div>
+        <div class="chip" onclick="goStage('shape')">"Review a PRD against our template"</div>
+      </div>`;
+    document.getElementById("composerInput").placeholder = "Describe what you want Claude to do better…";
+  }
+
+  else if (current === "shape") {
+    c.innerHTML = `
+      <div class="stage-title">Shape · question 2 of ~5</div>
+      <div class="bubble bot"><div class="body">Got it — launch announcements. Who's the audience for these posts?</div></div>
+      <div class="bubble me"><div class="body">Internal teams — mostly eng and sales.</div></div>
+      <div class="bubble bot"><div class="body">
+        What tone should the posts strike?
+        <div class="choices">
+          <div class="choice" onclick="goStage('draft')">Crisp & factual</div>
+          <div class="choice" onclick="goStage('draft')">Warm & upbeat</div>
+          <div class="choice" onclick="goStage('draft')">Formal</div>
+        </div>
+      </div></div>`;
+    document.getElementById("composerInput").placeholder = "…or type your own answer";
+  }
+
+  else if (current === "draft") {
+    c.innerHTML = `
+      <div class="stage-title">Draft</div>
+      <div class="bubble bot"><div class="body">
+        Here's your skill — see the panel on the right. Read it over. Want to change anything? Just tell me in plain language.
+      </div></div>
+      <div class="bubble bot"><div class="body">
+        For example: "make the tone a bit warmer" or "always ask for the go-live date".
+        <div class="choices">
+          <div class="choice" onclick="goStage('test')">Looks good — let's test it →</div>
+        </div>
+      </div></div>`;
+    document.getElementById("composerInput").placeholder = "Describe a change in plain language…";
+  }
+
+  else if (current === "test") {
+    c.innerHTML = `
+      <div class="stage-title">Test · live playground</div>
+      <div class="bubble me"><div class="body">Announce our new bulk-export feature to the team.</div></div>
+      <div class="bubble bot">
+        <span class="badge on">● Skill activated</span>
+        <div class="body">
+          <b>🚀 Bulk export is here</b><br/>
+          You can now export any report as CSV in one click — no more copy-paste…
+          <br/><br/><i>(drafted by launch-announcements)</i>
+        </div>
+      </div>
+      <div class="bubble bot"><div class="body">
+        Did it work the way you hoped?
+        <div class="choices">
+          <div class="choice" onclick="goStage('use')">Perfect — install it →</div>
+          <div class="choice" onclick="goStage('draft')">Something's off ↩ back to Draft</div>
+        </div>
+      </div></div>`;
+    document.getElementById("composerInput").placeholder = "Send a message to test your skill…";
+  }
+
+  else if (current === "use") {
+    c.innerHTML = `
+      <div class="stage-title">Use</div>
+      <div class="bubble bot"><div class="body">
+        🎉 <b>launch-announcements</b> is ready. Install it to use in any Claude session, or share it with your team.
+      </div></div>
+      <div class="bubble bot"><div class="body">
+        Once installed, kick it off with the starter prompt on the right.
+      </div></div>`;
+    composer.classList.add("hidden");
+  }
+  c.scrollTop = 0;
+}
+
+function renderPreview() {
+  const p = document.getElementById("preview");
+  const toggle = document.getElementById("mdToggle");
+  const title = document.getElementById("previewTitle");
+
+  // toggle only in draft/test/use
+  toggle.classList.toggle("hidden", !["draft", "test", "use"].includes(current));
+
+  if (current === "use") {
+    title.textContent = "Install & share";
+    p.innerHTML = `
+      <div class="kv"><div class="k">Skill</div><div class="v mono">${SKILL.name}</div></div>
+      <div class="use-actions">
+        <button class="btn primary">⤓ Install to my Claude</button>
+        <button class="btn">Share to team (open PR)</button>
+        <button class="btn ghost">Export as .zip</button>
+      </div>
+      <div class="kv" style="margin-top:22px"><div class="k">Starter prompt</div>
+        <div class="starter">announce a launch: &lt;paste feature brief&gt;</div>
+      </div>`;
+    return;
+  }
+
+  if (showMd && ["draft", "test"].includes(current)) {
+    title.textContent = "Raw markdown";
+    p.innerHTML = `<pre class="md">${MD.replace(/</g, "&lt;")}</pre>`;
+    return;
+  }
+
+  title.textContent = "Skill preview";
+  const filled = current !== "idea";
+  p.innerHTML = `
+    <div class="kv"><div class="k">Name</div>
+      <div class="v mono">${filled ? SKILL.name : "…forming"}</div></div>
+    <div class="kv"><div class="k">What it does</div>
+      <div class="v">${filled ? SKILL.description : "We'll fill this in as we talk."}</div></div>
+    <div class="kv"><div class="k">When it activates</div>
+      <div class="triggers">${filled ? SKILL.triggers.map(t => `<span class="trigger">${t}</span>`).join("") : '<span class="v" style="color:var(--ink-3)">—</span>'}</div></div>
+    ${["draft","test"].includes(current) ? `
+    <div class="kv"><div class="k">Sections</div>
+      <ul class="section-list">${SKILL.sections.map(s => `<li>${s}</li>`).join("")}</ul></div>` : ""}`;
+}
+
+// ---------- interactions ----------
+function render() { renderRail(); renderConvo(); renderPreview(); updateCrumb(); }
+function goStage(id) { current = id; showMd = false; syncToggle(); render(); }
+function setMd(v) { showMd = v; syncToggle(); renderPreview(); }
+function syncToggle() {
+  const btns = document.querySelectorAll("#mdToggle button");
+  if (btns.length) { btns[0].classList.toggle("on", !showMd); btns[1].classList.toggle("on", showMd); }
+}
+function sendFree() {
+  const i = document.getElementById("composerInput");
+  if (!i.value.trim()) return;
+  i.value = "";
+  const next = { idea: "shape", shape: "draft", draft: "test", test: "use" }[current];
+  if (next) goStage(next);
+}
+function updateCrumb() {
+  document.getElementById("crumb").innerHTML =
+    document.getElementById("build").classList.contains("active")
+      ? `Building <b>${SKILL.name}</b> · ${STAGES[idx(current)].label}` : "";
+}
+function showHome() {
+  document.getElementById("home").classList.add("active");
+  document.getElementById("build").classList.remove("active");
+  updateCrumb();
+}
+function openBuild(stage) {
+  current = stage || "idea"; showMd = false;
+  document.getElementById("home").classList.remove("active");
+  document.getElementById("build").classList.add("active");
+  render();
+}
+document.getElementById("composerInput")?.addEventListener("keydown", e => { if (e.key === "Enter") sendFree(); });
+
+render();
+</script>
+</body>
+</html>
